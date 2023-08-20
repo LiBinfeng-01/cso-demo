@@ -1,4 +1,4 @@
-use crate::memo::{GroupPlan, GroupPlanRef, GroupRef};
+use crate::memo::{GroupPlan, GroupPlanRef, GroupRef, Memo};
 use crate::property::PhysicalProperties;
 use crate::rule::{Binding, RuleRef, RuleSet};
 use crate::OptimizerContext;
@@ -169,24 +169,26 @@ impl EnforceAndCostTask {
         self.plan.borrow().operator().get_reqd_prop()
     }
 
-    fn add_enforcer_to_group(&self, _output_prop: &PhysicalProperties) -> &GroupPlanRef {
-        // add enforcer according to different specifications
-        todo!()
-        // let plan = output_prop.order_property.add_enforcer();
+    fn add_enforcer_to_group(&self, required_prop: &PhysicalProperties, memo: &mut Memo) -> &GroupPlanRef {
+        // make group plan
+        let child = vec![self.plan.borrow().group()];
+        let plan = required_prop.make_enforcer(child);
+        // insert group plan
+        &memo.insert_group_plan(plan, Some(self.plan.borrow().group()))
     }
 
     fn prev_index(&self) -> usize {
         self.prev_index
     }
 
-    fn submit_cost_plan(&self, child_output_props: &[Rc<PhysicalProperties>]) {
+    fn submit_cost_plan(&self, child_output_props: &[Rc<PhysicalProperties>], memo: &mut Memo) {
         let mut curr_plan = &self.plan;
-        let output_prop = curr_plan.borrow().operator().derive_output_prop(child_output_props);
+        let output_prop = curr_plan.borrow().operator().physical_op().derive_output_prop(child_output_props);
 
         let mut curr_cost = curr_plan.borrow().compute_cost();
         if !output_prop.satisfy(&self.required_prop) {
             // add enforcer
-            curr_plan = self.add_enforcer_to_group(&output_prop);
+            curr_plan = self.add_enforcer_to_group(&self.required_prop, memo);
             curr_cost = curr_plan.borrow().compute_cost();
         }
         match curr_plan
@@ -219,14 +221,11 @@ impl EnforceAndCostTask {
      * 3. once we get all output property of one candidate loop, derive output property base of current operator
      * 4. if output property does not satisfied require property, add enforcers and submit (Cost, GroupPlan) pair
      */
-    fn execute(mut self, task_runner: &mut TaskRunner, _optimizer_ctx: &mut OptimizerContext) {
+    fn execute(mut self, task_runner: &mut TaskRunner, optimizer_ctx: &mut OptimizerContext) {
         // 1. according to current operator create new requestPropList for children
         let reqd_props_list = self.make_required_props_list();
-        for (index, required_props) in reqd_props_list.iter().enumerate() {
+        for (index, required_props) in reqd_props_list.iter().enumerate().skip(self.prev_index) {
             let mut child_output_props = Vec::new();
-            if index < self.prev_index() {
-                continue;
-            }
             for (required_prop, child_group) in required_props.iter().zip(self.plan.borrow().inputs()) {
                 // 2. optimize children groups using requestPropList
                 match child_group.borrow().lowest_cost_plans().get(required_prop) {
@@ -248,7 +247,7 @@ impl EnforceAndCostTask {
             // and we want to compare require_prop and output_prop derived by child output props
             // if do not satisfy, add enforcer
             self.prev_index = index;
-            self.submit_cost_plan(&child_output_props);
+            self.submit_cost_plan(&child_output_props, optimizer_ctx.memo_mut());
         }
     }
 }

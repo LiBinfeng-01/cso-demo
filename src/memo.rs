@@ -230,7 +230,7 @@ impl Memo {
         group
     }
 
-    fn insert_group_plan(&mut self, plan: GroupPlan, target_group: Option<GroupRef>) -> GroupPlanRef {
+    pub fn insert_group_plan(&mut self, plan: GroupPlan, target_group: Option<GroupRef>) -> GroupPlanRef {
         let target_group = match target_group {
             None => self.new_group(),
             Some(group) => group,

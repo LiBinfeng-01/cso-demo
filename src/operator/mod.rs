@@ -66,14 +66,6 @@ impl Operator {
     }
 
     #[inline]
-    pub fn derive_output_prop(&self, input_props: &[Rc<PhysicalProperties>]) -> PhysicalProperties {
-        match self {
-            Operator::Logical(_) => unreachable!("only physical operators can derive output props"),
-            Operator::Physical(op) => op.derive_output_prop(input_props),
-        }
-    }
-
-    #[inline]
     pub fn get_reqd_prop(&self) -> Vec<Vec<PhysicalProperties>> {
         todo!()
     }
