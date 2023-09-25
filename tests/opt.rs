@@ -10,7 +10,7 @@ use cso_demo::metadata::{MdCache, MdId, Metadata};
 use cso_demo::operator::logical_filter::LogicalFilter;
 use cso_demo::operator::logical_project::LogicalProject;
 use cso_demo::operator::logical_scan::{LogicalScan, TableDesc};
-use cso_demo::operator::physical_topn::{OrderSpec, Ordering};
+use cso_demo::operator::physical_sort::{OrderSpec, Ordering};
 use cso_demo::property::sort_property::SortProperty;
 use cso_demo::property::PhysicalProperties;
 use cso_demo::{LogicalPlan, Optimizer, Options};
@@ -115,10 +115,12 @@ fn temp() {
     let mut optimizer = Optimizer::new(Options::default());
 
     let scan = logical_scan();
-    let filter = logical_filter(vec![scan]);
-    let project = logical_project(vec![filter]);
+    // let filter = logical_filter(vec![scan]);
+    // let project = logical_project(vec![filter]);
     let required_properties = required_properties();
     let md_accessor = metadata_accessor();
 
-    let _physical_plan = optimizer.optimize(project, required_properties, md_accessor);
+    let physical_plan = optimizer.optimize(scan, required_properties, md_accessor);
+
+    dbg!(physical_plan);
 }

@@ -49,6 +49,7 @@ impl LogicalPlan {
     }
 }
 
+#[derive(Debug)]
 pub struct PhysicalPlan {
     op: Rc<dyn PhysicalOperator>,
     inputs: Vec<PhysicalPlan>,
@@ -124,7 +125,7 @@ impl Optimizer {
         required_properties: Rc<PhysicalProperties>,
         md_accessor: MdAccessor,
     ) -> PhysicalPlan {
-        let mut optimizer_ctx = OptimizerContext::new(md_accessor);
+        let mut optimizer_ctx = OptimizerContext::new(md_accessor, required_properties.clone());
         optimizer_ctx.memo_mut().init(plan);
         // dbg!(optimizer_ctx.memo());
         let mut task_runner = TaskRunner::new();
@@ -140,14 +141,16 @@ pub struct OptimizerContext {
     memo: Memo,
     rule_set: RuleSet,
     md_accessor: MdAccessor,
+    required_properties: Rc<PhysicalProperties>,
 }
 
 impl OptimizerContext {
-    fn new(md_accessor: MdAccessor) -> Self {
+    fn new(md_accessor: MdAccessor, required_properties: Rc<PhysicalProperties>) -> Self {
         OptimizerContext {
             memo: Memo::new(),
             md_accessor,
             rule_set: RuleSet::new(),
+            required_properties,
         }
     }
 
@@ -165,5 +168,9 @@ impl OptimizerContext {
 
     pub fn md_accessor(&self) -> &MdAccessor {
         &self.md_accessor
+    }
+
+    pub fn required_properties(&self) -> &Rc<PhysicalProperties> {
+        &self.required_properties
     }
 }

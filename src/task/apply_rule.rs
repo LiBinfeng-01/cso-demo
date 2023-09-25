@@ -46,8 +46,8 @@ impl ApplyRuleTask {
             if group_plan.borrow().operator().is_logical() {
                 task_runner.push_task(OptimizePlanTask::new(group_plan));
             } else {
-                let required_prop: PhysicalProperties = PhysicalProperties::new();
-                let new_task = EnforceAndCostTask::new(group_plan, Rc::new(required_prop.clone()));
+                let required_prop = optimizer_ctx.required_properties();
+                let new_task = EnforceAndCostTask::new(group_plan, required_prop.clone());
                 task_runner.push_task(new_task);
             }
         }
