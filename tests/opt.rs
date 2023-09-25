@@ -115,12 +115,12 @@ fn temp() {
     let mut optimizer = Optimizer::new(Options::default());
 
     let scan = logical_scan();
-    // let filter = logical_filter(vec![scan]);
+    let filter = logical_filter(vec![scan]);
     // let project = logical_project(vec![filter]);
     let required_properties = required_properties();
     let md_accessor = metadata_accessor();
 
-    let physical_plan = optimizer.optimize(scan, required_properties, md_accessor);
+    let physical_plan = optimizer.optimize(filter, required_properties, md_accessor);
 
     dbg!(physical_plan);
 }

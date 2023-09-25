@@ -235,6 +235,9 @@ impl Group {
         let operator = plan.borrow().operator().physical_op().clone();
 
         let mut inputs = Vec::new();
+        if plan.borrow().inputs().is_empty() {
+            return PhysicalPlan::new(operator, inputs);
+        }
         let (_, child_reqd_props) = self.child_required_props(required_properties).unwrap();
         for (group, child_reqd_prop) in plan.borrow().inputs().iter().zip(child_reqd_props) {
             let child_plan = group.borrow().extract_best_plan(child_reqd_prop);

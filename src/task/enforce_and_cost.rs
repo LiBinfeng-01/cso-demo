@@ -55,7 +55,7 @@ impl EnforceAndCostTask {
         self.prev_index
     }
 
-    fn submit_cost_plan(&self, child_output_props: &[Rc<PhysicalProperties>], memo: &mut Memo) -> Cost {
+    fn submit_cost_plan(&self, child_output_props: &[Rc<PhysicalProperties>], memo: &mut Memo)      {
         let curr_plan = self.plan.borrow();
         let output_prop = curr_plan
             .operator()
@@ -63,18 +63,22 @@ impl EnforceAndCostTask {
             .derive_output_properties(child_output_props);
         let curr_group = curr_plan.group();
         let curr_cost = curr_plan.compute_cost(curr_group.borrow().statistics().as_deref());
+        curr_group
+            .borrow_mut()
+            .update_cost_plan(&output_prop, &self.plan, curr_cost);
         if !output_prop.satisfy(&self.required_prop) {
             let enforcer_plan = self.add_enforcer_to_group(&self.required_prop, memo);
             let enforcer_cost = curr_plan.compute_cost(curr_group.borrow().statistics().as_deref());
             curr_group
                 .borrow_mut()
                 .update_cost_plan(&self.required_prop, &enforcer_plan, enforcer_cost);
-            return enforcer_cost;
+            self.plan.borrow().group().borrow_mut().update_child_required_props(
+                &self.required_prop,
+                &[output_prop],
+                enforcer_cost,
+            );
+            return;
         }
-        curr_group
-            .borrow_mut()
-            .update_cost_plan(&self.required_prop, &self.plan, curr_cost);
-        curr_cost
     }
 
     /**
@@ -110,12 +114,7 @@ impl EnforceAndCostTask {
             // and we want to compare require_prop and output_prop derived by child output props
             // if do not satisfy, add enforcer
             self.prev_index = index;
-            let cost = self.submit_cost_plan(&child_output_props, optimizer_ctx.memo_mut());
-            self.plan.borrow().group().borrow_mut().update_child_required_props(
-                &self.required_prop,
-                child_required_props,
-                cost,
-            );
+            self.submit_cost_plan(&child_output_props, optimizer_ctx.memo_mut());
         }
     }
 }
